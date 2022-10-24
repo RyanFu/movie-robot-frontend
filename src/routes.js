@@ -29,7 +29,6 @@ const MovieRankingList = async(() => import("./pages/recommend/movieRankingList"
 const TVRankingList = async(() => import("./pages/recommend/tvRankingList"));
 const NetflixList = async(() => import("./pages/recommend/netflixList"));
 const RecentPopularMovieList = async(() => import("./pages/recommend/recentPopularMovieList"));
-const EditSubCustomFilter = async(() => import("./pages/subscribe/Custom/EditCustomFilter"));
 const SubscribeSearch = async(() => import("./pages/subscribe/Search"));
 const SubscribeCustomIndex = async(() => import("./pages/subscribe/Custom"));
 const SubscribeMovieIndex = async(() => import("./pages/subscribe/Movie"));
@@ -37,7 +36,6 @@ const SubscribeTVIndex = async(() => import("./pages/subscribe/TV"));
 const ScoreRuleConfig = async(() => import("./pages/config/ScoreRuleConfig"));
 const Selectors = async(() => import("./pages/selectors"));
 const SelectorsEditFilter = async(() => import("./pages/selectors/Filter/Edit"));
-const SearchPage = async(() => import("./pages/search/index"));
 const Setting = async(() => import("./pages/setting"));
 const EditMediaServer = async(() => import("./pages/setting/MediaServer/EditMediaServer"));
 const EditDownloadClient = async(() => import("./pages/setting/DownloadClient/Edit"));
@@ -52,8 +50,11 @@ const EditSearchSetting = async(() => import("./pages/setting/Advanced/EditSearc
 const EditLink = async(() => import("./pages/setting/Advanced/EditLink"));
 const EditNotifyTemplate = async(() => import("./pages/setting/Advanced/EditNotifyTemplate"));
 const EditScraper = async(() => import("./pages/setting/Advanced/EditScraper"));
+const License = async(() => import("./pages/setting/License"));
 const MediaLinkIndex = async(() => import("./pages/media/Link/index"));
 const HomePage = async(() => import("./pages/home"));
+const MediaDetail = async(() => import("./pages/media/Detail/index"));
+const EditCustomSub = async(() => import("./pages/subscribe/Custom/edit"));
 
 const routes = [{
     path: "auth", element: <AuthLayout/>, children: [{
@@ -141,6 +142,9 @@ const routes = [{
         }, {
             path: 'edit-scraper',
             element: <EditScraper/>
+        }, {
+            path: 'license',
+            element: <License/>
         }
     ]
 }, {
@@ -209,17 +213,19 @@ const routes = [{
     path: "subscribe", element: (<AuthGuard><DashboardLayout/></AuthGuard>), children: [{
         path: "search", element: <SubscribeSearch/>
     }, {
-        path: "edit-custom-filter", element: <EditSubCustomFilter/>
-    }, {
         path: 'custom-index', element: <SubscribeCustomIndex/>
     }, {
         path: 'movie-index', element: <SubscribeMovieIndex/>
     }, {
         path: 'tv-index', element: <SubscribeTVIndex/>
+    }, {
+        path: 'edit-custom-sub', element: <EditCustomSub/>
     }]
 }, {
     path: "media", element: (<AuthGuard><DashboardLayout/></AuthGuard>), children: [{
         path: "link-index", element: <MediaLinkIndex/>
+    }, {
+        path: "detail", element: <MediaDetail/>
     }]
 }, {
     path: "*", element: <AuthLayout/>, children: [{

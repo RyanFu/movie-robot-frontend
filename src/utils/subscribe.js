@@ -15,11 +15,39 @@ export const useSubCustomList = (param) => {
         client("/api/subscribe/get_sub_custom_list", {params: param})
     );
 }
+export const useCustomSubRecordList = (param) => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/get_custom_sub_record", {params: params, method: "GET"})
+    );
+}
 export const useSubCustom = (param) => {
     const client = useHttp();
     return useMutation(
         (params) =>
             client("/api/subscribe/sub_custom", {params: params, method: "POST"})
+    );
+};
+export const useEnableSubCustomStatus = (param) => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/enable_sub_custom", {params: params, method: "GET"})
+    );
+};
+export const useRunSubCustom = (param) => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/run_custom_sub", {params: params, method: "POST"})
+    );
+};
+export const useShareSubRule = (param) => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/share_sub_rule", {params: params, method: "GET"})
     );
 };
 export const useGetSubCustom = (param) => {
@@ -28,10 +56,46 @@ export const useGetSubCustom = (param) => {
         client("/api/subscribe/get_sub_custom", {params: params})
     );
 };
+export const useGetSubRule = (param) => {
+    const client = useHttp();
+    return useMutation((params) =>
+        client("/api/subscribe/get_sub_rule", {params: params})
+    );
+};
 export const useDeleteSubCustom = () => {
     const client = useHttp();
     return useMutation((params) =>
         client("/api/subscribe/delete_sub_custom", {params: params})
+    );
+};
+export const useGetTopSubRuleList = (param) => {
+    const client = useHttp();
+    return useQuery(['get_top_sub_rule_list', param], () =>
+        client("/api/subscribe/get_top_sub_rule_list", {params: param})
+    );
+};
+export const useLikeSubRule = () => {
+    const client = useHttp();
+    return useMutation((params) =>
+        client("/api/subscribe/like_sub_rule", {params: params})
+    );
+};
+export const useCancelLikeSubRule = () => {
+    const client = useHttp();
+    return useMutation((params) =>
+        client("/api/subscribe/cancel_like_sub_rule", {params: params})
+    );
+};
+export const useHateSubRule = () => {
+    const client = useHttp();
+    return useMutation((params) =>
+        client("/api/subscribe/hate_sub_rule", {params: params})
+    );
+};
+export const useCancelHateSubRule = () => {
+    const client = useHttp();
+    return useMutation((params) =>
+        client("/api/subscribe/cancel_hate_sub_rule", {params: params})
     );
 };
 // 订阅搜索
@@ -118,5 +182,19 @@ export const useDeleteSubDataset = () => {
     return useMutation(
         (params) =>
             client("/api/subscribe/delete_sub_dataset", {params: params, method: "POST"})
+    );
+};
+export const useGetSubLogs = () => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/get_sub_logs", {params: params, method: "GET"})
+    );
+};
+export const useGetSubLogText = () => {
+    const client = useHttp();
+    return useMutation(
+        (params) =>
+            client("/api/subscribe/get_sub_log_text", {params: params, method: "GET"})
     );
 };

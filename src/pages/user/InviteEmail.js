@@ -1,5 +1,5 @@
-import React, {useEffect} from "react";
-import {NavLink, useNavigate} from "react-router-dom";
+import React from "react";
+import {NavLink} from "react-router-dom";
 import {Helmet} from "react-helmet-async";
 import {
     Alert as MuiAlert,
@@ -22,9 +22,6 @@ const Divider = styled(MuiDivider)(spacing);
 const Alert = styled(MuiAlert)(spacing);
 
 const TextField = styled(MuiTextField)(spacing);
-const Centered = styled.div`
-  text-align: center;
-`;
 
 
 function EditForm({}) {
@@ -40,7 +37,7 @@ function EditForm({}) {
                     email: values.email
                 }, {
                     onSuccess: res => {
-                        const {code, message: msg, data} = res;
+                        const {code, message: msg} = res;
                         if (code === 0) {
                             message.success(msg)
                         } else {
@@ -93,8 +90,8 @@ const EditWeb = () => {
         </Typography>
 
         <Breadcrumbs aria-label="Breadcrumb" mt={2}>
-            <Link component={NavLink} to="/setting/index">
-                VIP特权
+            <Link component={NavLink} to="/setting/license">
+                授权信息
             </Link>
             <Typography>发送产品体验码</Typography>
         </Breadcrumbs>

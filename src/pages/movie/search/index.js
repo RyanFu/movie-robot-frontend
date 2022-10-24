@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useState} from "react";
 import styled from "styled-components/macro";
-import {Search as SearchIcon} from "@mui/icons-material";
 import {Helmet} from "react-helmet-async";
 import axios from "../../../utils/request";
 import {useUrlQueryParam} from '@/hooks/useUrlQueryParam';
@@ -18,15 +17,11 @@ import {
     DialogContentText,
     DialogTitle,
     Divider,
-    FormControl,
     FormControlLabel,
     Grid,
-    IconButton,
-    InputAdornment,
     List,
     ListItem,
     ListItemText,
-    OutlinedInput,
     Snackbar,
     SwipeableDrawer,
     Typography
@@ -34,18 +29,21 @@ import {
 import {spacing} from "@mui/system";
 import Record from "./components/Record";
 import MediaServerSearch from "@/pages/movie/search/MediaServerSearch";
-import {FilterOptionsProvider} from "@/components/Selectors/FilterOptionsProvider";
+import {FilterOptionsProvider} from "@/contexts/FilterOptionsProvider";
 
 const StyledDivider = styled(Divider)(spacing);
 
 const TagFileter = ({filter, data, onFilter}) => {
-    const list = [
+    let list = [
         {name: '站点', dataKey: 'sites'},
         {name: '年份', dataKey: 'movie_release_year'},
         {name: '来源', dataKey: 'source'},
         {name: '分辨率', dataKey: 'resolution'},
-        {name: '编码', dataKey: 'encode'},
-    ]
+        {name: '编码', dataKey: 'encode'}
+    ];
+    if ('season' in data) {
+        list.push({name: '季度', dataKey: 'season'});
+    }
     const obj2Array = obj => {
         return Object.keys(obj).map(key => ({name: key, value: obj[key]}))
     }
@@ -56,7 +54,12 @@ const TagFileter = ({filter, data, onFilter}) => {
             top: 64px;
         }
         z-index: 100;
+        overflow-x: scroll;
+        -webkit-overflow=scroling: touch;
         background: ${(props) => props.theme.palette.background.default};
+        &::-webkit-scrollbar{
+            display: none
+        }
     `;
     return (
         <FilterWrapper sx={{
@@ -69,7 +72,8 @@ const TagFileter = ({filter, data, onFilter}) => {
                         <DropDownBox
                             key={item.dataKey}
                             label={item.name}
-                            value={filter[item.dataKey]}
+                            sx={{minWidth: '80px'}}
+                            value={Object.keys(data[item.dataKey]).find(value => data[item.dataKey][value] === filter[item.dataKey])}
                             data={obj2Array(data[item.dataKey])}
                             onChange={(value) => {
                                 onFilter({...filter, [item.dataKey]: value});
@@ -194,7 +198,7 @@ function SearchRecords(props) {
     const [message, setMessage] = useState(false);
 
     const searchData = (keyword) => {
-        if (keyword && !loading) {
+        if (keyword !== undefined && keyword !== null && !loading) {
             setLoading(true);
             setRecords(null);
             setParam({keyword, searchSite: 'true'});
@@ -222,7 +226,18 @@ function SearchRecords(props) {
                         tips += "(" + res.data.run_timeout_names.join(';') + "超时无结果)"
                     }
                     setMessage(tips);
-                    torrents.forEach(({site_name, media_encoding, media_source, resolution: _rs, movie_release_year}) => {
+                    let movieCnt = 0;
+                    let tvCnt = 0;
+                    let seasonNumbers = new Set()
+                    torrents.forEach(({
+                                          site_name,
+                                          media_encoding,
+                                          media_source,
+                                          resolution: _rs,
+                                          movie_release_year,
+                                          movie_type,
+                                          tv_series
+                                      }) => {
                         if (sites) {
                             sites[site_name] = site_name;
                         }
@@ -238,14 +253,39 @@ function SearchRecords(props) {
                         if (movie_release_year) {
                             releaseYear[movie_release_year] = movie_release_year;
                         }
+                        if (movie_type === 'TV') {
+                            tvCnt++;
+                            if (tv_series) {
+                                for (const s of tv_series.season_full_index) {
+                                    seasonNumbers.add(s);
+                                }
+                            }
+                        } else {
+                            movieCnt++;
+                        }
                     });
-                    setTagResource({
-                        sites,
-                        encode,
-                        source,
-                        resolution,
-                        movie_release_year: releaseYear
-                    });
+                    seasonNumbers = Array.from(seasonNumbers);
+                    seasonNumbers.sort();
+                    if (tvCnt > torrents.length * 0.5) {
+                        const season = {"全部": "全部"};
+                        seasonNumbers.forEach((value => season[`第${value}季`] = value))
+                        setTagResource({
+                            sites,
+                            encode,
+                            source,
+                            resolution,
+                            movie_release_year: releaseYear,
+                            season
+                        });
+                    } else {
+                        setTagResource({
+                            sites,
+                            encode,
+                            source,
+                            resolution,
+                            movie_release_year: releaseYear
+                        });
+                    }
                     setRecords(torrents);
                 }
             }).catch(() => {
@@ -294,16 +334,17 @@ function SearchRecords(props) {
                             return true;
                         }
                         const {
-                            site_id,
+                            site_name,
                             resolution,
                             media_source,
                             media_encoding,
-                            movie_release_year
+                            movie_release_year,
+                            tv_series
                         } = item;
                         let bool = true;
                         Object.keys(filter).forEach((key) => {
                             const item = filter[key];
-                            bool = bool && (!item || item === "全部" || item === site_id || item === resolution || item === media_source || item === media_encoding || item === movie_release_year);
+                            bool = bool && (!item || item === "全部" || item === site_name || item === resolution || item === media_source || item === media_encoding || item === movie_release_year || tv_series?.season_full_index?.includes(item));
                         });
                         return bool;
                     }).map((row, index) => (

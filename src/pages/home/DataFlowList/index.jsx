@@ -1,39 +1,19 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ListItem from './ListItem';
-import {Button, Divider, Grid, Stack, Typography} from "@mui/material";
-import {useGetDoubanSuggestion} from "@/api/MovieApi";
-import message from "@/utils/message";
+import { Button, Divider, Grid, Stack, Typography } from "@mui/material";
+import { useGetDoubanSuggestion } from "@/api/MovieApi";
 import SubscribeDialog from "@/pages/subscribe/components/SubscribeDialog";
-
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 
 const DataFlowList = () => {
-    const [subInfo, setSubInfo] = useState(null);
-    const {mutateAsync: getMedia, isLoading} = useGetDoubanSuggestion();
-    const [hasMore, setHasMore] = useState(true);
-    const [mediaList, setMediaList] = useState([]);
-    const [currentStart, setCurrentStart] = useState(0);
-    const fetchMediaList = (start = 0) => {
-        getMedia({start}, {
-            onSuccess: resData => {
-                const {code, message: msg, data} = resData;
-                if (code === 0) {
-                    if (data?.items && data.items.length > 0) {
-                        let newList = [...mediaList];
-                        newList = newList.concat(data.items);
-                        setMediaList(newList);
-                    }
-                    setCurrentStart(data?.next_start);
-                    setHasMore(data?.has_more);
-                } else {
-                    message.error(msg);
-                }
-            },
-            onError: error => message.error(error)
-        });
-    }
-    const fetchMore = () => {
-        fetchMediaList(currentStart);
-    }
+    const [subInfo, setSubInfo] = useState();
+    const [setsubItemIds, setsetsubItemIds] = useState([])
+    const { data: mediaList,
+        fetchNextPage,
+        hasNextPage,
+        isFetching
+    } = useGetDoubanSuggestion();
+
     const onSub = (media) => {
         setSubInfo({
             id: media.id,
@@ -42,45 +22,51 @@ const DataFlowList = () => {
         });
     }
     const onSubComplete = () => {
-        const newList = mediaList.map((item) => {
-            if (item.id === subInfo.id) {
-                const updatedItem = {
-                    ...item,
-                    isSub: true,
-                };
-                return updatedItem;
-            }
-            return item;
-        });
-        setMediaList(newList);
+        setsetsubItemIds([...setsubItemIds, subInfo.id])
         setSubInfo(null);
     }
+
+    const ref = useRef(null)
+    const entry = useIntersectionObserver(ref)
+
     useEffect(() => {
-        fetchMediaList(0);
-    }, []);
+        if (entry?.isIntersecting && hasNextPage && !isFetching) {
+            fetchNextPage();
+        }
+    }, [entry?.isIntersecting, hasNextPage, isFetching])
+
     return (
-        <Grid spacing={6}>
+        <Grid>
             <Grid item>
                 <Typography variant="h5" mt={2} gutterBottom>
                     推荐
                 </Typography>
             </Grid>
-            <Divider sx={{my: 3}}/>
-            <SubscribeDialog
+            <Divider sx={{ my: 3 }} />
+            {subInfo && <SubscribeDialog
                 open={subInfo}
                 onComplete={onSubComplete}
                 handleClose={() => setSubInfo(null)}
-                data={({id: subInfo?.id, name: subInfo?.name, year: subInfo?.year})}
-            />
+                data={({ id: subInfo?.id, name: subInfo?.name, year: subInfo?.year })}
+            />}
             <Stack spacing={2}>
                 {
-                    (mediaList || []).map(item => <ListItem key={item.id} data={item} onSub={onSub}/>)
+                    mediaList && (mediaList.pages || []).map(pages => pages.items.map(
+                        item =>
+                            <ListItem key={item.id} data={{ ...item, isSub: setsubItemIds.includes(item.id) }} onSub={onSub} />
+                    ))
                 }
+                {(hasNextPage && isFetching) || !mediaList
+                    ? Array.from(new Array(10)).map((_item, index) => (
+                        <ListItem key={index} />
+                    ))
+                    : <></>}
+                <div style={{ position: 'relative', top: '-400px', height: '4px' }} ref={ref} />
             </Stack>
-            {hasMore ?
-                <Button variant="text" disabled={isLoading} onClick={() => fetchMore()} fullWidth>加载更多</Button> :
-                <Button fullWidth disabled>没有更多了</Button>}
-        </Grid>
+            {
+                !hasNextPage && <Button fullWidth disabled>没有更多了</Button>
+            }
+        </Grid >
     );
 }
 

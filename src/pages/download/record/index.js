@@ -1,6 +1,15 @@
 import React, {useEffect, useState} from 'react';
 import {Helmet} from "react-helmet-async";
-import {Button, Divider as BtnDivider, Divider as MuiDivider, Grid, Stack, Typography} from "@mui/material";
+import {
+    Backdrop,
+    Button,
+    CircularProgress,
+    Divider as BtnDivider,
+    Divider as MuiDivider,
+    Grid,
+    Stack,
+    Typography
+} from "@mui/material";
 import MovieCard from "../components/MovieCard";
 import {getDownloading, getRecordList} from "@/api/DownloadApi";
 import styled from "styled-components/macro";
@@ -13,9 +22,11 @@ import {SmallButton} from "@/components/core/SmallButton";
 import ChartDialogs from "@/pages/download/components/ChartDialogs";
 import {STATUS} from "@/constants";
 import {Alert} from "@mui/lab";
+import SubLogDialog from "@/pages/subscribe/SubLogDialog";
 
 const Divider = styled(MuiDivider)(spacing);
 export default function DownloadRecords() {
+    const [showSubLog, setShowSubLog] = useState(null);
     const [list, setList] = useState([]);
     const [analyzeData, setAnalyzeData] = useState({});
     const [deleteData, setDeleteData] = useState({});
@@ -24,17 +35,22 @@ export default function DownloadRecords() {
     const [currentStart, setCurrentStart] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const fetchData = async () => {
+    const fetchData = async (start = null) => {
         setIsLoading(true);
-        const result = await getRecordList(currentStart);
+        const result = await getRecordList(start);
         setIsLoading(false);
         setDownloadQueueSize(result?.data?.download_queue_size);
         if (!result.data?.result || result.data.result.length === 0) {
             setHasMore(false);
             return;
         }
-        const newList = [...list];
-        setCurrentStart(currentStart + result.data.result.length);
+        let newList = null;
+        if (!start) {
+            newList = [];
+        } else {
+            newList = [...list];
+        }
+        setCurrentStart(start + result.data.result.length);
         // 数据处理
         for (let r of result.data.result) {
             let desc = r.download_status === 3 ? r.torrent_subject : r.desc;
@@ -62,7 +78,10 @@ export default function DownloadRecords() {
                 season_index: r.season_index,
                 season_year: r.season_year,
                 episode: r?.episodes ? r.episodes.split(",") : null,
-                source_type: r?.source_type
+                source_type: r?.source_type,
+                sub_id: r.sub_id,
+                sub_type: r.sub_type,
+                gmt_create: r.gmt_create
             });
         }
         setList(newList);
@@ -86,11 +105,11 @@ export default function DownloadRecords() {
 
     // 初始化加载数据
     useEffect(async () => {
-        await fetchData()
+        await fetchData(0)
         await fetchDownloadingList();
     }, [])
     const onUpdateClick = async () => {
-        await fetchData()
+        await fetchData(0)
         await fetchDownloadingList();
     }
     return (
@@ -105,31 +124,47 @@ export default function DownloadRecords() {
                 <Grid item>
                     <Stack direction="row" divider={<BtnDivider orientation="vertical" flexItem/>} spacing={1}>
                         <ChartDialogs/>
-                        <SmallButton size="small" mr={2} onClick={() => onUpdateClick()}>
-                            <LoopIcon/>
+                        <SmallButton color="inherit" size="small" mr={2} onClick={() => onUpdateClick()}>
+                            刷新 <LoopIcon/>
                         </SmallButton>
                     </Stack>
                 </Grid>
             </Grid>
             <Divider my={4}/>
+            <Backdrop
+                sx={{color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1}}
+                open={isLoading}
+            >
+                <CircularProgress color="inherit"/>
+                <Typography variant="h5">
+                    加载中...
+                </Typography>
+            </Backdrop>
             {downloadQueueSize && downloadQueueSize > 0 ? <Stack sx={{width: '100%', mb: 4}} spacing={2}>
                 <Alert variant="filled" severity="warning">有{downloadQueueSize}个下载请求排队处理中</Alert>
             </Stack> : null}
+            <SubLogDialog subId={showSubLog?.subId}
+                          subType={showSubLog?.subType}
+                          title={showSubLog?.title ? `${showSubLog?.title}的订阅全息日志` : "未知信息"}
+                          open={showSubLog}
+                          selectTime={showSubLog?.time}
+                          handleClose={() => setShowSubLog(null)}/>
             <Grid container={true} spacing={6}>
                 {
                     list.map((movie) => {
                         const downloading = downloadingList?.find(down => down.hash === movie.hash)
                         return <MovieCard key={movie.id} data={movie} onDelete={setDeleteData} downloading={downloading}
-                                          onAnalyze={setAnalyzeData}/>
+                                          onAnalyze={setAnalyzeData} onShowSubLog={(val) => setShowSubLog(val)}/>
                     })
                 }
             </Grid>
             {hasMore ?
-                <Button sx={{mt:4}} variant="text" disabled={isLoading} onClick={() => fetchData()} fullWidth>加载更多</Button> :
-                <Button sx={{mt:4}} fullWidth disabled>没有更多了</Button>}
+                <Button sx={{mt: 4}} variant="text" disabled={isLoading} onClick={() => fetchData(currentStart)}
+                        fullWidth>加载更多</Button> :
+                <Button sx={{mt: 4}} fullWidth disabled>没有更多了</Button>}
             {/*重新识别*/}
             <ReAnalyze {...analyzeData} onAnalyze={setAnalyzeData} onAnalyzeSuccess={async () => {
-                await fetchData();
+                await fetchData(0);
                 await fetchDownloadingList();
             }}/>
             {/*删除*/}
